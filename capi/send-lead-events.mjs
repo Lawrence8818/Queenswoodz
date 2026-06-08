@@ -56,6 +56,35 @@ const stageKey = (s) => (s || '').toLowerCase().trim().replace(/\s+/g, '_');
 // Stages that should carry a monetary value (enables value optimisation later).
 const VALUE_STAGES = new Set(['deal_signed']);
 
+// Column-name aliases — so the same tool reads a hand-made CSV *or* the
+// Meta-delivered sheet (which uses phone_number, full name, lead_status, etc.)
+// without renaming anything. Matched case-insensitively.
+const FIELD_ALIASES = {
+  lead_id: ['lead_id', 'leadid', 'id', 'leadgen_id'],
+  email: ['email', 'em', 'email_address', 'e-mail'],
+  phone: ['phone', 'phone_number', 'ph', 'mobile', 'contact_number'],
+  first_name: ['first_name', 'firstname', 'fn'],
+  last_name: ['last_name', 'lastname', 'ln'],
+  full_name: ['full_name', 'full name', 'name', 'fullname'],
+  stage: ['stage', 'lead_status', 'status', 'lead stage'],
+  event_time: ['event_time', 'created_time', 'created', 'date', 'event_date', 'timestamp'],
+  value: ['value', 'deal_value', 'amount', 'price'],
+  currency: ['currency'],
+};
+
+// Read a logical field from a row by trying its aliases (case-insensitive).
+function field(rec, key) {
+  if (!rec.__lc) {
+    rec.__lc = {};
+    for (const k of Object.keys(rec)) rec.__lc[k.toLowerCase().trim()] = rec[k];
+  }
+  for (const alias of FIELD_ALIASES[key] || [key]) {
+    const v = rec.__lc[alias];
+    if (v != null && String(v).trim() !== '') return String(v).trim();
+  }
+  return '';
+}
+
 // ---------------------------------------------------------------------------
 // 2. Config
 // ---------------------------------------------------------------------------
@@ -141,22 +170,38 @@ function toUnixSeconds(v) {
 }
 
 function buildEvent(rec, lineNo) {
-  const stage = stageKey(rec.stage);
+  // A blank status means the lead exists but hasn't progressed = raw `lead`.
+  // That's the whole unprogressed pool, which Meta needs as the baseline.
+  const rawStage = field(rec, 'stage');
+  const stage = rawStage ? stageKey(rawStage) : 'lead';
   const eventName = STAGE_TO_EVENT[stage];
   if (!eventName) {
-    console.warn(`  ⚠ line ${lineNo}: unknown stage "${rec.stage}" — skipped. ` +
+    console.warn(`  ⚠ line ${lineNo}: unknown stage "${rawStage}" — skipped. ` +
       `Valid: lead, viewing booked, qualified, deal signed`);
     return null;
   }
 
-  // lead_id is the Meta-generated leadgen id from your Instant Form — the strongest
-  // match key for lead-ads attribution. Sent UNHASHED inside user_data.
+  // Strip any "l:" / "p:" style prefixes by keeping digits only. lead_id is the
+  // Meta leadgen id — the strongest match key — and is sent UNHASHED.
+  const leadId = field(rec, 'lead_id').replace(/[^0-9]/g, '');
+  const email = field(rec, 'email');
+  const phone = field(rec, 'phone');
+
+  // Names: use explicit first/last if present, else split a "full name" column.
+  let firstName = field(rec, 'first_name');
+  let lastName = field(rec, 'last_name');
+  if (!firstName && !lastName) {
+    const parts = field(rec, 'full_name').split(/\s+/).filter(Boolean);
+    firstName = parts.shift() || '';
+    lastName = parts.join(' ');
+  }
+
   const user_data = {};
-  if (rec.lead_id) user_data.lead_id = String(rec.lead_id).replace(/[^0-9]/g, '');
-  const em = normEmail(rec.email);   if (em) user_data.em = [em];
-  const ph = normPhone(rec.phone);   if (ph) user_data.ph = [ph];
-  const fn = normName(rec.first_name); if (fn) user_data.fn = [fn];
-  const ln = normName(rec.last_name);  if (ln) user_data.ln = [ln];
+  if (leadId) user_data.lead_id = leadId;
+  const em = normEmail(email);     if (em) user_data.em = [em];
+  const ph = normPhone(phone);     if (ph) user_data.ph = [ph];
+  const fn = normName(firstName);  if (fn) user_data.fn = [fn];
+  const ln = normName(lastName);   if (ln) user_data.ln = [ln];
 
   if (!user_data.lead_id && !user_data.em && !user_data.ph) {
     console.warn(`  ⚠ line ${lineNo}: no lead_id / email / phone — unmatchable, skipped.`);
@@ -168,17 +213,18 @@ function buildEvent(rec, lineNo) {
     event_source: 'crm',
     lead_event_source: cfg.leadEventSource,
   };
-  if (VALUE_STAGES.has(stage) && rec.value) {
-    custom_data.value = Number(rec.value);
-    custom_data.currency = rec.currency || 'MYR';
+  const value = field(rec, 'value');
+  if (VALUE_STAGES.has(stage) && value) {
+    custom_data.value = Number(value);
+    custom_data.currency = field(rec, 'currency') || 'MYR';
   }
-  if (rec.stage) custom_data.lead_stage = rec.stage; // human-readable, for reporting
+  custom_data.lead_stage = rawStage || 'lead'; // human-readable, for reporting
 
   return {
     event_name: eventName,
-    event_time: toUnixSeconds(rec.event_time),
+    event_time: toUnixSeconds(field(rec, 'event_time')),
     action_source: 'system_generated',           // required for CRM/back-end events
-    event_id: eventId(user_data.lead_id, stage, rec.email || rec.phone || lineNo),
+    event_id: eventId(user_data.lead_id, stage, email || phone || lineNo),
     user_data,
     custom_data,
   };

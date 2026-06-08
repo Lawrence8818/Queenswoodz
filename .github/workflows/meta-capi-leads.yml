@@ -48,7 +48,7 @@ jobs:
           LEAD_EVENT_SOURCE: ${{ vars.LEAD_EVENT_SOURCE || 'Queenswoodz CRM' }}
           GOOGLE_SERVICE_ACCOUNT_JSON: service-account.json
           SHEET_ID: ${{ secrets.SHEET_ID }}
-          SHEET_RANGE: ${{ vars.SHEET_RANGE || 'Leads!A:I' }}
+          SHEET_RANGE: ${{ vars.SHEET_RANGE || 'A:R' }}
 
       - name: Clean up key
         if: always()
