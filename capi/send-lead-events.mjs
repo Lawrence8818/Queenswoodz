@@ -161,12 +161,19 @@ function parseCsv(text) {
 // 5. Build CAPI events from CSV rows
 // ---------------------------------------------------------------------------
 function toUnixSeconds(v) {
-  if (!v) return Math.floor(Date.now() / 1000);
-  // accept unix seconds, unix ms, or ISO date
-  if (/^\d{10}$/.test(v)) return Number(v);
-  if (/^\d{13}$/.test(v)) return Math.floor(Number(v) / 1000);
-  const t = Date.parse(v);
-  return Number.isNaN(t) ? Math.floor(Date.now() / 1000) : Math.floor(t / 1000);
+  const now = Math.floor(Date.now() / 1000);
+  const SEVEN_DAYS = 7 * 24 * 3600;
+  let t;
+  if (!v) t = now;
+  else if (/^\d{10}$/.test(v)) t = Number(v);              // unix seconds
+  else if (/^\d{13}$/.test(v)) t = Math.floor(Number(v) / 1000); // unix ms
+  else { const p = Date.parse(v); t = Number.isNaN(p) ? now : Math.floor(p / 1000); }
+  // Meta's /events endpoint rejects event_time more than 7 days old or in the
+  // future. We don't track the exact moment a stage changed, so clamp anything
+  // outside that window to "now" (dedup is by event_id, so re-sends still
+  // collapse correctly).
+  if (t > now || t < now - SEVEN_DAYS) t = now;
+  return t;
 }
 
 function buildEvent(rec, lineNo) {
