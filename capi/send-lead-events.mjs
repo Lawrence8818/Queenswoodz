@@ -246,8 +246,18 @@ async function send(events) {
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
     const e = json.error || {};
+    // Surface Meta's *detailed* reason — the top-level message is often just
+    // "Invalid parameter"; the useful text lives in these sub-fields.
+    const detail = [
+      e.error_subcode ? `subcode=${e.error_subcode}` : '',
+      e.error_user_title ? `title="${e.error_user_title}"` : '',
+      e.error_user_msg ? `why="${e.error_user_msg}"` : '',
+      e.error_data ? `data=${JSON.stringify(e.error_data)}` : '',
+    ].filter(Boolean).join(' ');
+    console.error('\n— First event in the failing batch (for debugging) —');
+    console.error(JSON.stringify(events[0], null, 2));
     die(`Meta API ${res.status}: ${e.message || JSON.stringify(json)} ` +
-      `(type=${e.type} code=${e.code} fbtrace_id=${e.fbtrace_id || 'n/a'})`);
+      `(type=${e.type} code=${e.code} ${detail} fbtrace_id=${e.fbtrace_id || 'n/a'})`);
   }
   return json;
 }
