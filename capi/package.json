@@ -1,0 +1,13 @@
+{
+  "name": "queenswoodz-capi",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Meta Conversions API uploader for CRM lead-stage events (viewing booked, qualified, deal signed).",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "send": "node --env-file=.env send-lead-events.mjs",
+    "send:test": "node --env-file=.env send-lead-events.mjs --test",
+    "dry-run": "node --env-file=.env send-lead-events.mjs --dry-run"
+  }
+}

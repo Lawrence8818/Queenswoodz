@@ -1,0 +1,5 @@
+lead_id,email,phone,first_name,last_name,stage,event_time,value,currency
+1234567890123456,jane@example.com,+60123456789,Jane,Tan,viewing_booked,2026-06-01T10:30:00+08:00,,
+1234567890123456,jane@example.com,+60123456789,Jane,Tan,qualified,2026-06-03T15:00:00+08:00,,
+1234567890123456,jane@example.com,+60123456789,Jane,Tan,deal_signed,2026-06-07T11:00:00+08:00,650000,MYR
+,ahmad@example.com,+60198887777,Ahmad,Bin Yusof,viewing_booked,2026-06-05T09:00:00+08:00,,

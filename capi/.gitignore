@@ -1,0 +1,4 @@
+.env
+leads.csv
+*.local.csv
+node_modules/
