@@ -1,0 +1,56 @@
+name: Push CRM lead-stage events to Meta
+
+# Sends viewing_booked / qualified / deal_signed events from the Google Sheet
+# to the "New KL Property CRM" dataset via the Conversions API.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   META_CAPI_TOKEN              dataset access token (ads_management)
+#   GOOGLE_SERVICE_ACCOUNT_JSON  full contents of the service-account JSON key
+#   SHEET_ID                     spreadsheet id from the sheet URL
+# Optional repository variables (Settings → Secrets and variables → Actions → Variables):
+#   META_DATASET_ID              defaults to 523313347359817 (New KL Property CRM)
+#   LEAD_EVENT_SOURCE            defaults to "Queenswoodz CRM"
+#   SHEET_RANGE                  defaults to "Leads!A:I"
+
+on:
+  schedule:
+    - cron: '0 1 * * *'   # 01:00 UTC daily = 09:00 Malaysia (MYT, UTC+8)
+  workflow_dispatch:       # lets you run it on demand from the Actions tab
+    inputs:
+      dry_run:
+        description: 'Dry run (build payload, send nothing)'
+        type: boolean
+        default: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Write service-account key
+        working-directory: capi
+        run: printf '%s' "$GOOGLE_SERVICE_ACCOUNT_JSON" > service-account.json
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+
+      - name: Send lead-stage events
+        working-directory: capi
+        run: node send-lead-events.mjs --sheet ${{ inputs.dry_run && '--dry-run' || '' }}
+        env:
+          META_DATASET_ID: ${{ vars.META_DATASET_ID || '523313347359817' }}
+          META_CAPI_TOKEN: ${{ secrets.META_CAPI_TOKEN }}
+          META_API_VERSION: v23.0
+          LEAD_EVENT_SOURCE: ${{ vars.LEAD_EVENT_SOURCE || 'Queenswoodz CRM' }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: service-account.json
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+          SHEET_RANGE: ${{ vars.SHEET_RANGE || 'A:R' }}
+
+      - name: Clean up key
+        if: always()
+        working-directory: capi
+        run: rm -f service-account.json
