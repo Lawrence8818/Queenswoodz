@@ -9,10 +9,19 @@ stage updates (in the Google Sheet) keep it fresh.
 From **Privyr** (or *Meta Business Suite → All tools → Instant Forms → Download leads*),
 export every lead you have. You need, per lead:
 
-- **`lead_id`** — the 15–16 digit Meta lead id (the match key). Privyr stores this even for
-  old leads. If a few don't have it, leave blank — email + phone will match instead.
-- **email**, **phone** (with country code, e.g. `+60…`), name — for matching.
+- **email** and **phone** (with country code, e.g. `+60…`) — these are the match keys that
+  matter. Name helps too.
 - the **date** the lead reached its stage.
+- **`lead_id`** (optional) — the 15–16 digit Meta lead id. Strongest key, but **not
+  required**. Note: Meta deletes lead data after 90 days, so lead_ids for older leads no
+  longer exist anywhere — email + phone is the correct (and only) way to match that history.
+
+> **No Lead ID? No problem, and no need to pay.** Your history's main job is to seed a
+> **Lookalike audience**, which matches on email + phone — not lead_id. The simplest path for
+> the buyers + qualified is to upload them as a **Customer List** custom audience in Ads
+> Manager (Audiences → Create → Custom Audience → Customer list) and build a Lookalike from
+> it. Capture lead_id only on *future* leads, for free, via Meta's Lead Ads → Google Sheets
+> auto-delivery.
 
 ## Step 2 — Fill in `backfill-template.csv`
 
