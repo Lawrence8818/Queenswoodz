@@ -39,12 +39,19 @@ import { readSheet } from './sheets.mjs';
 // then map each event_name to a lead-funnel stage and pick which one your
 // campaign optimises toward. Keep these names stable once live — renaming
 // resets learning.
+// Keys are normalised: lower-cased, spaces -> underscores. So "Deal Signed",
+// "deal signed" and "deal_signed" all match. `lead` and `form_lead` are aliases
+// for the raw-lead stage.
 const STAGE_TO_EVENT = {
-  form_lead: 'Lead',            // initial form submission (Meta usually already has this)
+  lead: 'Lead',                 // raw lead — every lead from the form (the whole pool)
+  form_lead: 'Lead',            // alias for `lead`
   viewing_booked: 'ViewingBooked',
   qualified: 'Qualified',
   deal_signed: 'DealSigned',    // value-bearing — the deepest signal
 };
+
+// Normalise a stage string to a STAGE_TO_EVENT key.
+const stageKey = (s) => (s || '').toLowerCase().trim().replace(/\s+/g, '_');
 
 // Stages that should carry a monetary value (enables value optimisation later).
 const VALUE_STAGES = new Set(['deal_signed']);
@@ -134,11 +141,11 @@ function toUnixSeconds(v) {
 }
 
 function buildEvent(rec, lineNo) {
-  const stage = (rec.stage || '').toLowerCase();
+  const stage = stageKey(rec.stage);
   const eventName = STAGE_TO_EVENT[stage];
   if (!eventName) {
     console.warn(`  ⚠ line ${lineNo}: unknown stage "${rec.stage}" — skipped. ` +
-      `Valid: ${Object.keys(STAGE_TO_EVENT).join(', ')}`);
+      `Valid: lead, viewing booked, qualified, deal signed`);
     return null;
   }
 
