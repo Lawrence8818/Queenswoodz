@@ -145,9 +145,12 @@ Keep names stable once live — renaming an event resets Meta's learning.
 ## Automating later
 
 Right now you run `npm run send` by hand against the sheet. To make it hands-off, put it on a
-schedule — a daily cron job, or a GitHub Action with the token + service-account JSON stored
-as encrypted secrets. The sheet stays the single place you update; the job just replays it to
-Meta each day (the deterministic `event_id` keeps re-sends from double-counting).
+schedule — a daily cron job, or the included **GitHub Action**
+(`.github/workflows/meta-capi-leads.yml`), which runs at 09:00 MYT daily and can also be
+triggered manually from the Actions tab (with a dry-run option). Add three repo secrets —
+`META_CAPI_TOKEN`, `GOOGLE_SERVICE_ACCOUNT_JSON` (paste the whole key file), and `SHEET_ID` —
+and it just replays the sheet to Meta each day. The deterministic `event_id` keeps re-sends
+from double-counting, so a daily full replay is safe.
 
 ---
 
