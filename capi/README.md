@@ -4,10 +4,10 @@ Feed deep-funnel lead signals — **viewing booked → qualified → deal signed
 CRM back into Meta via the Conversions API, so your always-on lead-gen ads can optimise for
 *outcomes* instead of raw form fills. This is the "Conversion Leads" setup.
 
-> **Why this matters for you right now.** Your dataset **"Lawrence Property CRM"
-> (`1072574217502347`)** already exists but has **never received a single event** — no
-> events configured, zero signal quality, never fired. Meta has nothing deep-funnel to learn
-> from, which is why higher-funnel optimisation stays locked. This pipeline fills that gap.
+> **Why this matters for you right now.** Your target dataset **"New KL Property CRM"
+> (`523313347359817`)** last received an event in **December 2024** and has been silent ever
+> since. With no fresh deep-funnel signal, higher-funnel optimisation stays locked. This
+> pipeline starts feeding it again — pulling lead stages straight from your **Google Sheet**.
 
 ---
 
@@ -17,10 +17,10 @@ CRM back into Meta via the Conversions API, so your always-on lead-gen ads can o
 Meta Lead Ad (Instant Form)
         │  lead arrives, carries a `lead_id` (15–16 digit Meta leadgen id)
         ▼
-   Your CRM / sheet  ──►  lead moves through stages over days/weeks
-        │                    viewing_booked → qualified → deal_signed
+   Google Sheet  ──►  you move each lead through stages over days/weeks
+        │               viewing_booked → qualified → deal_signed
         ▼
-  send-lead-events.mjs  ──►  Conversions API  ──►  "Lawrence Property CRM" dataset
+  send-lead-events.mjs  ──►  Conversions API  ──►  "New KL Property CRM" dataset
         │                                              │
         │  action_source: system_generated             ▼
         │  custom_data.event_source: crm        Events Manager: map each event
@@ -37,7 +37,7 @@ no pixel, fully attributable.
 
 ## One-time Meta setup (do this once)
 
-1. **Pick the dataset.** Use **`1072574217502347` ("Lawrence Property CRM")**. In
+1. **Pick the dataset.** Use **`523313347359817` ("New KL Property CRM")**. In
    *Events Manager → Settings*, confirm it's connected to the **Facebook Page** running your
    Queenswoodz lead ads (CRM events match to leads through the Page).
 2. **Generate an access token.** *Events Manager → dataset → Settings → Conversions API →
@@ -54,25 +54,39 @@ no pixel, fully attributable.
 
 ---
 
+## One-time Google Sheet setup (do this once)
+
+1. **Google Cloud Console** → create/pick a project → **enable "Google Sheets API"**.
+2. **Create a Service Account** → **Keys → Add key → JSON** → download it. Save it as
+   `capi/service-account.json` (already gitignored — never commit it).
+3. **Share your lead sheet** with the service account's `client_email` (from the JSON),
+   **Viewer** access is enough. The sheet stays private — no "publish to web".
+4. In `.env` set `GOOGLE_SERVICE_ACCOUNT_JSON`, `SHEET_ID` (the long token in the sheet URL),
+   and `SHEET_RANGE` (e.g. `Leads!A:I`). The first row of that range must be the **header**
+   using the column names below.
+
+---
+
 ## Daily / weekly run
 
-1. Export your leads to a CSV (columns below). Keep the **`lead_id`** column populated from
-   your Lead Ads — it's the strongest match key.
-2. `cp .env.example .env` and fill in `META_CAPI_TOKEN`.
+1. Keep your **Google Sheet** up to date: one row per lead-stage transition, with the
+   **`lead_id`** column populated from your Lead Ads (strongest match key).
+2. `cp .env.example .env` and fill in `META_CAPI_TOKEN` + the Google vars.
 3. Send:
 
 ```bash
 cd capi
 
-# 1) See exactly what will be sent — no request made:
-node send-lead-events.mjs leads.csv --dry-run
+# 1) See exactly what will be sent — reads the sheet, sends nothing:
+npm run dry-run
 
 # 2) Route to the Test Events tab to eyeball matching (set META_TEST_EVENT_CODE first):
-node --env-file=.env send-lead-events.mjs leads.csv --test
+npm run send:test
 
 # 3) Go live:
-node --env-file=.env send-lead-events.mjs leads.csv
-# or:  npm run send
+npm run send
+
+# (CSV instead of the sheet? -> npm run send:csv -- leads.csv)
 ```
 
 Re-running is safe: each event gets a **deterministic `event_id`** (`lead_id` + stage), so
@@ -80,7 +94,7 @@ Meta de-duplicates — you can re-send the whole file daily without double-count
 
 ---
 
-## CSV format
+## Columns (Google Sheet header row, or CSV)
 
 | column        | required | notes |
 |---------------|----------|-------|
@@ -95,8 +109,9 @@ Meta de-duplicates — you can re-send the whole file daily without double-count
 | `currency`    | optional | default `MYR` |
 
 At least one of `lead_id` / `email` / `phone` must be present or the row is skipped.
-See `leads.sample.csv`. Only PII is hashed — `lead_id` is sent in the clear (that's correct;
-it's not personal data, it's Meta's own id).
+`leads.sample.csv` shows the exact column layout to mirror in your sheet's header row. Only
+PII is hashed — `lead_id` is sent in the clear (that's correct; it's not personal data, it's
+Meta's own id).
 
 ---
 
@@ -129,10 +144,10 @@ Keep names stable once live — renaming an event resets Meta's learning.
 
 ## Automating later
 
-This CSV runner is the manual baseline. To make it continuous, swap the CSV read for a pull
-from wherever your pipeline lives (Notion, Google Sheet, or a real CRM webhook) and run it on
-a schedule (cron / GitHub Action). The `buildEvent()` function is the only piece you need to
-feed — everything downstream stays the same.
+Right now you run `npm run send` by hand against the sheet. To make it hands-off, put it on a
+schedule — a daily cron job, or a GitHub Action with the token + service-account JSON stored
+as encrypted secrets. The sheet stays the single place you update; the job just replays it to
+Meta each day (the deterministic `event_id` keeps re-sends from double-counting).
 
 ---
 

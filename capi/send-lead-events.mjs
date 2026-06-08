@@ -8,21 +8,29 @@
  *
  * Zero dependencies. Requires Node 18+ (uses native fetch + crypto).
  *
+ * Input is either a CSV file or a Google Sheet (--sheet).
+ *
  * Usage:
- *   node send-lead-events.mjs leads.csv
- *   node send-lead-events.mjs leads.csv --dry-run        # build + print payload, send nothing
- *   node send-lead-events.mjs leads.csv --test           # route to Test Events tab (needs META_TEST_EVENT_CODE)
+ *   node send-lead-events.mjs leads.csv               # from a CSV file
+ *   node send-lead-events.mjs --sheet                 # from the Google Sheet in .env
+ *   node send-lead-events.mjs --sheet --dry-run       # build + print payload, send nothing
+ *   node send-lead-events.mjs --sheet --test          # route to Test Events tab (needs META_TEST_EVENT_CODE)
  *
  * Configuration is read from environment variables (see .env.example):
- *   META_DATASET_ID      (required)  e.g. 1072574217502347  ("Lawrence Property CRM")
+ *   META_DATASET_ID      (required)  e.g. 523313347359817  ("New KL Property CRM")
  *   META_CAPI_TOKEN      (required)  System-user / dataset access token with ads_management
  *   META_API_VERSION     (optional)  default v23.0
  *   META_TEST_EVENT_CODE (optional)  e.g. TEST12345 — only used with --test
  *   LEAD_EVENT_SOURCE    (optional)  name of your CRM, default "Queenswoodz CRM"
+ * Google Sheet input (--sheet) additionally needs:
+ *   GOOGLE_SERVICE_ACCOUNT_JSON      path to service-account key JSON
+ *   SHEET_ID                         spreadsheet id from its URL
+ *   SHEET_RANGE          (optional)  A1 range, default "A:Z"
  */
 
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { readSheet } from './sheets.mjs';
 
 // ---------------------------------------------------------------------------
 // 1. Funnel stage -> Meta event name mapping
@@ -55,6 +63,7 @@ const cfg = {
 const args = process.argv.slice(2);
 const flags = new Set(args.filter((a) => a.startsWith('--')));
 const csvPath = args.find((a) => !a.startsWith('--'));
+const USE_SHEET = flags.has('--sheet');
 const DRY_RUN = flags.has('--dry-run');
 const TEST_MODE = flags.has('--test');
 
@@ -63,7 +72,7 @@ function die(msg) {
   process.exit(1);
 }
 
-if (!csvPath) die('Provide a CSV path, e.g. `node send-lead-events.mjs leads.csv`');
+if (!USE_SHEET && !csvPath) die('Provide a CSV path or pass --sheet to read the Google Sheet.');
 if (!cfg.datasetId) die('META_DATASET_ID is not set.');
 if (!cfg.token && !DRY_RUN) die('META_CAPI_TOKEN is not set (required unless --dry-run).');
 if (TEST_MODE && !cfg.testEventCode) die('--test requires META_TEST_EVENT_CODE to be set.');
@@ -199,9 +208,21 @@ function chunk(arr, n) {
 // ---------------------------------------------------------------------------
 // 7. Main
 // ---------------------------------------------------------------------------
+async function loadRecords() {
+  if (USE_SHEET) {
+    console.log(`Reading Google Sheet ${process.env.SHEET_ID} (${process.env.SHEET_RANGE || 'A:Z'})…`);
+    return readSheet({
+      credentialsPath: process.env.GOOGLE_SERVICE_ACCOUNT_JSON,
+      sheetId: process.env.SHEET_ID,
+      range: process.env.SHEET_RANGE || 'A:Z',
+    });
+  }
+  return parseCsv(readFileSync(csvPath, 'utf8'));
+}
+
 (async () => {
-  const records = parseCsv(readFileSync(csvPath, 'utf8'));
-  if (!records.length) die(`No data rows found in ${csvPath}.`);
+  const records = await loadRecords();
+  if (!records.length) die(`No data rows found in ${USE_SHEET ? 'the sheet' : csvPath}.`);
 
   const events = records
     .map((rec, i) => buildEvent(rec, i + 2)) // +2: header is line 1
@@ -231,4 +252,4 @@ function chunk(arr, n) {
   console.log(`\n✔ Done. Meta accepted ${received} event(s).`);
   if (TEST_MODE) console.log('  Check Events Manager → your dataset → Test Events to see them live.');
   else console.log('  Check Events Manager → your dataset → Overview (web + offline) within ~20 min.\n');
-})().catch((e) => die(e.stack || String(e)));
+})().catch((e) => die(e.message || String(e)));
