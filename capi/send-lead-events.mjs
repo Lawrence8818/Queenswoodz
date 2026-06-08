@@ -45,9 +45,9 @@ import { readSheet } from './sheets.mjs';
 const STAGE_TO_EVENT = {
   lead: 'Lead',                 // raw lead — every lead from the form (the whole pool)
   form_lead: 'Lead',            // alias for `lead`
-  viewing_booked: 'ViewingBooked',
+  viewing_booked: 'Viewing Booked',
   qualified: 'Qualified',
-  deal_signed: 'DealSigned',    // value-bearing — the deepest signal
+  deal_signed: 'Deal Signed',   // value-bearing — the deepest signal
 };
 
 // Normalise a stage string to a STAGE_TO_EVENT key.
