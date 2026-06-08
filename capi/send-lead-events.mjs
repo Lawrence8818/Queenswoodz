@@ -280,12 +280,24 @@ function chunk(arr, n) {
 // ---------------------------------------------------------------------------
 async function loadRecords() {
   if (USE_SHEET) {
-    console.log(`Reading Google Sheet ${process.env.SHEET_ID} (${process.env.SHEET_RANGE || 'A:Z'})…`);
-    return readSheet({
-      credentialsPath: process.env.GOOGLE_SERVICE_ACCOUNT_JSON,
-      sheetId: process.env.SHEET_ID,
-      range: process.env.SHEET_RANGE || 'A:Z',
-    });
+    // SHEET_ID may be a single id or a comma-separated list (one per Facebook
+    // page). All are read with the same range and pooled into one dataset;
+    // event_id dedup keeps things clean and lead_ids never collide across pages.
+    const ids = (process.env.SHEET_ID || '').split(',').map((s) => s.trim()).filter(Boolean);
+    const range = process.env.SHEET_RANGE || 'A:Z';
+    if (!ids.length) throw new Error('SHEET_ID is not set.');
+    let all = [];
+    for (const sheetId of ids) {
+      console.log(`Reading Google Sheet ${sheetId} (${range})…`);
+      const rows = await readSheet({
+        credentialsPath: process.env.GOOGLE_SERVICE_ACCOUNT_JSON,
+        sheetId,
+        range,
+      });
+      console.log(`  ${rows.length} row(s)`);
+      all = all.concat(rows);
+    }
+    return all;
   }
   return parseCsv(readFileSync(csvPath, 'utf8'));
 }
