@@ -23,12 +23,12 @@ import { createSign } from 'node:crypto';
 const b64url = (buf) =>
   Buffer.from(buf).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
-async function getAccessToken(sa) {
+async function getAccessToken(sa, scope = 'https://www.googleapis.com/auth/spreadsheets.readonly') {
   const now = Math.floor(Date.now() / 1000);
   const header = b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
   const claims = b64url(JSON.stringify({
     iss: sa.client_email,
-    scope: 'https://www.googleapis.com/auth/spreadsheets.readonly',
+    scope,
     aud: 'https://oauth2.googleapis.com/token',
     iat: now,
     exp: now + 3600,
@@ -76,4 +76,38 @@ export async function readSheet({ credentialsPath, sheetId, range }) {
   return rows.slice(1)
     .filter((r) => r.some((v) => String(v).trim() !== ''))
     .map((r) => Object.fromEntries(header.map((h, i) => [h, String(r[i] ?? '').trim()])));
+}
+
+/**
+ * Append rows to the bottom of a sheet's data table (service-account auth).
+ * Requires the service account to have *Editor* access and the read-write
+ * spreadsheets scope. Values are written RAW so prefixed ids ("l:123…") and
+ * phone strings stay as text and aren't reinterpreted as numbers/dates.
+ *
+ * @param {object} opts
+ * @param {string} opts.credentialsPath  path to the service-account JSON key
+ * @param {string} opts.sheetId          spreadsheet id
+ * @param {string} opts.range            A1 range whose table to append to, e.g. "A:R"
+ * @param {Array<Array<string>>} opts.rows  rows to append (each an array of cells)
+ * @returns {Promise<number>} number of rows appended
+ */
+export async function appendRows({ credentialsPath, sheetId, range, rows }) {
+  if (!credentialsPath) throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON is not set.');
+  if (!sheetId) throw new Error('SHEET_ID is not set.');
+  if (!rows || !rows.length) return 0;
+  const sa = JSON.parse(readFileSync(credentialsPath, 'utf8'));
+  const token = await getAccessToken(sa, 'https://www.googleapis.com/auth/spreadsheets');
+
+  const url =
+    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}` +
+    `/values/${encodeURIComponent(range || 'A:Z')}:append` +
+    `?valueInputOption=RAW&insertDataOption=INSERT_ROWS`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ majorDimension: 'ROWS', values: rows }),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(`Sheets append ${res.status}: ${json.error?.message || JSON.stringify(json)}`);
+  return json.updates?.updatedRows || rows.length;
 }

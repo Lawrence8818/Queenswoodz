@@ -3,14 +3,22 @@ name: Push CRM lead-stage events to Meta
 # Sends viewing_booked / qualified / deal_signed events from the Google Sheet
 # to the "New KL Property CRM" dataset via the Conversions API.
 #
+# Each daily run does two legs:
+#   1. pull-leads.mjs   Meta Lead Center  -> appends new leads to the Google Sheet
+#   2. send-lead-events Google Sheet      -> stage events to the CRM dataset (CAPI)
+#
 # Required repository secrets (Settings → Secrets and variables → Actions):
-#   META_CAPI_TOKEN              dataset access token (ads_management)
+#   META_CAPI_TOKEN              token with ads_management AND leads_retrieval,
+#                                with access to the lead-form Page
 #   GOOGLE_SERVICE_ACCOUNT_JSON  full contents of the service-account JSON key
+#                                (the service account needs EDITOR access to the sheet)
 #   SHEET_ID                     spreadsheet id from the sheet URL
 # Optional repository variables (Settings → Secrets and variables → Actions → Variables):
 #   META_DATASET_ID              defaults to 523313347359817 (New KL Property CRM)
+#   META_PAGE_ID                 defaults to 100861858282739 (Lawrence 找幸福屋)
 #   LEAD_EVENT_SOURCE            defaults to "Queenswoodz CRM"
-#   SHEET_RANGE                  defaults to "Leads!A:I"
+#   SHEET_RANGE                  defaults to "A:R"
+#   LEAD_LOOKBACK_DAYS           defaults to 30
 
 on:
   schedule:
@@ -38,6 +46,23 @@ jobs:
         env:
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
 
+      # Leg 1: pull new leads from Meta into the sheet. continue-on-error so a
+      # leads-permission hiccup never blocks leg 2 from sending existing rows.
+      - name: Pull new leads from Meta into the sheet
+        if: ${{ !inputs.dry_run }}
+        continue-on-error: true
+        working-directory: capi
+        run: node pull-leads.mjs
+        env:
+          META_CAPI_TOKEN: ${{ secrets.META_CAPI_TOKEN }}
+          META_API_VERSION: v23.0
+          META_PAGE_ID: ${{ vars.META_PAGE_ID || '100861858282739' }}
+          LEAD_LOOKBACK_DAYS: ${{ vars.LEAD_LOOKBACK_DAYS || '30' }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: service-account.json
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+          SHEET_RANGE: ${{ vars.SHEET_RANGE || 'A:R' }}
+
+      # Leg 2: send stage events for everything in the sheet.
       - name: Send lead-stage events
         working-directory: capi
         run: node send-lead-events.mjs --sheet ${{ inputs.dry_run && '--dry-run' || '' }}
