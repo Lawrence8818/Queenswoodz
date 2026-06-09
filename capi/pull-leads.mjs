@@ -91,14 +91,17 @@ async function graphGetAll(node, params = {}, token = cfg.token) {
 // ---------------------------------------------------------------------------
 // Field mapping
 // ---------------------------------------------------------------------------
-// Meta's standard lead-form field names. Anything *not* in here is treated as a
-// custom question (your "interested_in" property-type question).
-const STANDARD_FIELDS = new Set([
-  'full_name', 'first_name', 'last_name', 'email', 'work_email', 'phone_number',
-  'city', 'state', 'province', 'country', 'post_code', 'zip', 'street_address',
-  'company_name', 'job_title', 'gender', 'dob', 'date_of_birth',
-  'marital_status', 'relationship_status', 'military_status',
-]);
+// The lead forms use varying field keys for the same logical answer (and the
+// name field is literally "full name", with a space). Map each sheet column to
+// the first matching key found on the lead.
+const NAME_KEYS     = ['full name', 'full_name', 'name'];
+const PHONE_KEYS    = ['phone_number', 'phone'];
+const CITY_KEYS     = ['city', 'town/city'];
+const INBOX_KEYS    = ['inbox_url'];
+// The property-preference question — different forms name it differently.
+const INTEREST_KEYS = [
+  'interested_in', 'preferable_layout', 'preferable_no.of.rooms', 'no_of_rooms_needed_?',
+];
 
 function answersOf(lead) {
   const a = {};
@@ -106,11 +109,18 @@ function answersOf(lead) {
   return a;
 }
 
-function customAnswer(lead) {
-  for (const f of lead.field_data || []) {
-    if (!STANDARD_FIELDS.has(f.name)) return (f.values || []).join(', ');
+// First non-empty answer among the given candidate keys.
+function pick(a, keys) {
+  for (const k of keys) {
+    if (a[k] != null && String(a[k]).trim() !== '') return String(a[k]).trim();
   }
   return '';
+}
+
+// Meta's automated test leads carry placeholder values like
+// "<test lead: dummy data for phone_number>" — never write these to the sheet.
+function isTestLead(a) {
+  return Object.values(a).some((v) => /test lead:\s*dummy data/i.test(v));
 }
 
 // created_time arrives as ISO 8601 with offset ("2026-05-27T09:30:00+0800").
@@ -122,6 +132,7 @@ const trimTime = (t) => (t ? String(t).replace(/[+-]\d{4}$/, '').replace(/Z$/, '
 // visually identical to existing ones and the send step parses them the same.
 function leadToRow(lead, formName) {
   const a = answersOf(lead);
+  const phone = pick(a, PHONE_KEYS);
   return [
     `l:${lead.id}`,                                   // A id
     trimTime(lead.created_time),                      // B created_time
@@ -135,11 +146,11 @@ function leadToRow(lead, formName) {
     formName || '',                                   // J form_name
     lead.is_organic ? 'TRUE' : 'FALSE',               // K is_organic
     lead.platform || '',                              // L platform
-    customAnswer(lead),                               // M interested_in
-    a.phone_number ? `p:${a.phone_number}` : '',      // N phone_number
-    a.full_name || [a.first_name, a.last_name].filter(Boolean).join(' '), // O full name
-    a.city || '',                                     // P city
-    '',                                               // Q inbox_url (set elsewhere)
+    pick(a, INTEREST_KEYS),                           // M interested_in
+    phone ? `p:${phone}` : '',                        // N phone_number
+    pick(a, NAME_KEYS),                               // O full name
+    pick(a, CITY_KEYS),                               // P city
+    pick(a, INBOX_KEYS),                              // Q inbox_url
     '',                                               // R lead_status (set manually)
   ];
 }
@@ -180,27 +191,18 @@ function leadToRow(lead, formName) {
     'form_id,is_organic,platform,field_data';
 
   const newRows = [];
-  const fieldKeys = new Map();   // debug: distinct field_data keys -> sample value
   let scanned = 0;
   for (const form of forms) {
     const leads = await graphGetAll(`${form.id}/leads`, { fields: leadFields }, pageToken);
     for (const lead of leads) {
       scanned++;
-      for (const f of lead.field_data || []) {                        // collect field keys for mapping
-        if (!fieldKeys.has(f.name)) fieldKeys.set(f.name, (f.values || []).join(', '));
-      }
       const created = Math.floor(Date.parse(lead.created_time) / 1000);
       if (Number.isFinite(created) && created < cutoff) continue;     // too old
       if (have.has(String(lead.id))) continue;                        // already in sheet
+      if (isTestLead(answersOf(lead))) continue;                      // Meta dummy test lead
       have.add(String(lead.id));                                      // guard dupes within this run
       newRows.push(leadToRow(lead, form.name));
     }
-  }
-
-  if (DRY_RUN) {
-    console.log('\nField keys seen (name → sample value):');
-    for (const [k, v] of fieldKeys) console.log(`  ${JSON.stringify(k)} → ${JSON.stringify(v)}`);
-    console.log('');
   }
 
   console.log(`Scanned ${scanned} lead(s) across forms; ${newRows.length} new within ${cfg.lookbackDays} days.\n`);
