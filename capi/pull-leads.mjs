@@ -180,17 +180,27 @@ function leadToRow(lead, formName) {
     'form_id,is_organic,platform,field_data';
 
   const newRows = [];
+  const fieldKeys = new Map();   // debug: distinct field_data keys -> sample value
   let scanned = 0;
   for (const form of forms) {
     const leads = await graphGetAll(`${form.id}/leads`, { fields: leadFields }, pageToken);
     for (const lead of leads) {
       scanned++;
+      for (const f of lead.field_data || []) {                        // collect field keys for mapping
+        if (!fieldKeys.has(f.name)) fieldKeys.set(f.name, (f.values || []).join(', '));
+      }
       const created = Math.floor(Date.parse(lead.created_time) / 1000);
       if (Number.isFinite(created) && created < cutoff) continue;     // too old
       if (have.has(String(lead.id))) continue;                        // already in sheet
       have.add(String(lead.id));                                      // guard dupes within this run
       newRows.push(leadToRow(lead, form.name));
     }
+  }
+
+  if (DRY_RUN) {
+    console.log('\nField keys seen (name → sample value):');
+    for (const [k, v] of fieldKeys) console.log(`  ${JSON.stringify(k)} → ${JSON.stringify(v)}`);
+    console.log('');
   }
 
   console.log(`Scanned ${scanned} lead(s) across forms; ${newRows.length} new within ${cfg.lookbackDays} days.\n`);
