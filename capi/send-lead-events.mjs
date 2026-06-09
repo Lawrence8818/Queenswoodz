@@ -70,6 +70,11 @@ const FIELD_ALIASES = {
   event_time: ['event_time', 'created_time', 'created', 'date', 'event_date', 'timestamp'],
   value: ['value', 'deal_value', 'amount', 'price'],
   currency: ['currency'],
+  // Which ad / campaign produced this lead — optional, for your own per-ad
+  // cost-per-sale (CAC) reporting. Meta already attributes via lead_id; these
+  // just travel alongside so deals stay tagged to their winning creative.
+  source_ad: ['source_ad', 'ad', 'ad_name', 'winning_ad', 'source ad'],
+  campaign: ['campaign', 'campaign_name', 'source_campaign', 'adset', 'ad_set'],
 };
 
 // Read a logical field from a row by trying its aliases (case-insensitive).
@@ -226,6 +231,12 @@ function buildEvent(rec, lineNo) {
     custom_data.currency = field(rec, 'currency') || 'MYR';
   }
   custom_data.lead_stage = rawStage || 'lead'; // human-readable, for reporting
+  // Carry source-ad attribution when present, so cost-per-sale per ad (CAC,
+  // i.e. the "third pass") is reproducible from the data itself.
+  const sourceAd = field(rec, 'source_ad');
+  if (sourceAd) custom_data.lead_source_ad = sourceAd;
+  const campaign = field(rec, 'campaign');
+  if (campaign) custom_data.lead_source_campaign = campaign;
 
   return {
     event_name: eventName,

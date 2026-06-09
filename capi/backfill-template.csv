@@ -1,6 +1,6 @@
-lead_id,email,phone,first_name,last_name,stage,event_time,value,currency,notes
-1234567890123456,buyer1@example.com,+60123456789,Wei,Lim,deal signed,2025-09-12,650000,MYR,YOUR area - your commission
-2234567890123456,buyer2@example.com,+60127778888,Siti,Rahman,qualified,2025-08-03,,,closed ELSEWHERE in KV - mark qualified not deal signed
-3234567890123456,lead3@example.com,+60195556666,Ahmad,Yusof,qualified,2025-07-21,,,genuine qualified lead
-4234567890123456,lead4@example.com,+60134445555,Mei,Tan,viewing booked,2025-06-15,,,booked a showing
-5234567890123456,,+60111234567,,,lead,2025-05-02,,,dead/low-quality lead - KEEP IT, do not delete
+lead_id,email,phone,first_name,last_name,stage,event_time,value,currency,source_ad,notes
+1234567890123456,buyer1@example.com,+60123456789,Wei,Lim,deal signed,2025-09-12,650000,MYR,QW_Vid 1_Site,YOUR area - your commission
+2234567890123456,buyer2@example.com,+60127778888,Siti,Rahman,qualified,2025-08-03,,,Treewoodz 2_Lead,closed ELSEWHERE in KV - mark qualified not deal signed
+3234567890123456,lead3@example.com,+60195556666,Ahmad,Yusof,qualified,2025-07-21,,,6_pic_Golf View,genuine qualified lead
+4234567890123456,lead4@example.com,+60134445555,Mei,Tan,viewing booked,2025-06-15,,,Open_New Vela_Pic,booked a showing
+5234567890123456,,+60111234567,,,lead,2025-05-02,,,QW Video 1,dead/low-quality lead - KEEP IT, do not delete

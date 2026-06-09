@@ -107,6 +107,8 @@ Meta de-duplicates — you can re-send the whole file daily without double-count
 | `event_time`  | optional | ISO (`2026-06-07T11:00:00+08:00`) or unix seconds; defaults to now |
 | `value`       | for `deal_signed` | deal value, enables value optimisation later |
 | `currency`    | optional | default `MYR` |
+| `source_ad`   | optional | the ad that produced the lead (e.g. `QW_Vid 1_Site`). Travels as `custom_data.lead_source_ad` for your own per-ad cost-per-sale (CAC) reporting. |
+| `campaign`    | optional | campaign / ad-set name, sent as `custom_data.lead_source_campaign`. |
 
 At least one of `lead_id` / `email` / `phone` must be present or the row is skipped.
 `leads.sample.csv` shows the exact column layout to mirror in your sheet's header row. Only
