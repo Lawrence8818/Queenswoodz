@@ -32,7 +32,10 @@ import { readSheet, appendRows } from './sheets.mjs';
 // Config
 // ---------------------------------------------------------------------------
 const cfg = {
-  token: process.env.META_CAPI_TOKEN,
+  // Pulling leads needs `leads_retrieval` + Page access, which the send-only
+  // CAPI token usually lacks. Use a dedicated META_LEADS_TOKEN if provided, and
+  // fall back to META_CAPI_TOKEN (handy if you make one token with all scopes).
+  token: process.env.META_LEADS_TOKEN || process.env.META_CAPI_TOKEN,
   pageId: process.env.META_PAGE_ID,
   apiVersion: process.env.META_API_VERSION || 'v23.0',
   lookbackDays: Number(process.env.LEAD_LOOKBACK_DAYS || '30'),
@@ -45,7 +48,7 @@ const DRY_RUN = process.argv.slice(2).includes('--dry-run');
 
 function die(msg) { console.error(`\n✖ ${msg}\n`); process.exit(1); }
 
-if (!cfg.token) die('META_CAPI_TOKEN is not set.');
+if (!cfg.token) die('META_LEADS_TOKEN / META_CAPI_TOKEN is not set.');
 if (!cfg.pageId) die('META_PAGE_ID is not set.');
 if (!cfg.credentialsPath) die('GOOGLE_SERVICE_ACCOUNT_JSON is not set.');
 if (!cfg.sheetId) die('SHEET_ID is not set.');

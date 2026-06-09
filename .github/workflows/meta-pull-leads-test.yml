@@ -33,6 +33,7 @@ jobs:
         working-directory: capi
         run: node pull-leads.mjs --dry-run
         env:
+          META_LEADS_TOKEN: ${{ secrets.META_LEADS_TOKEN }}
           META_CAPI_TOKEN: ${{ secrets.META_CAPI_TOKEN }}
           META_API_VERSION: v23.0
           META_PAGE_ID: ${{ vars.META_PAGE_ID || '100861858282739' }}
