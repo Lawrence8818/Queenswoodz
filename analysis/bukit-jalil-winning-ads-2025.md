@@ -1,7 +1,7 @@
 # Bukit Jalil Winning Ads Analysis (Mar–Nov 2025)
 **Account:** 真.好住 Property (`509853868515596`) · Agent: Lawrence Law Property (LxH)
 **Scope:** All Bukit Jalil property ads that ran **30+ days** between **1 Mar – 30 Nov 2025**
-**Ranking basis:** Spend + longevity (most-scaled, longest-running = proven winners)
+**Ranking basis:** Pass 1 = Spend + longevity (most-scaled, longest-running = proven winners) · **Pass 2 = Cost-per-lead efficiency (see §B2)**
 **Currency:** MYR · **Data source:** Meta Ads (live pull)
 
 ---
@@ -24,6 +24,14 @@ on *engagement*, while short English image ads (Treewoodz) won on *cheap lead vo
 (not Kinrara/BK5/Puchong)" differentiation, "walk to Pavilion + LRT", first-50/last-X
 scarcity bonus (free 80% branded furniture / kitchen cabinet), and the agent's
 "I'll survey every BJ project for you, no spam calls" trust hook.
+
+**Second-pass (cost-per-lead) takeaway — §B2:** when you re-rank the *same* winners by
+**how cheaply each bought a lead**, the order flips. Your biggest-spend hero video
+(`QW_Vid 1_Site`) is only **mid-pack on CPL (RM62.76)** — it's a *volume* engine, not
+your cheapest. The **cheapest leads come from short image "info-gate" ads** (Treewoodz
+RM50.78, Vela RM54.90), and the **highest-CTR ad (`QW_Vid 3_VR`) is the *most expensive*
+per lead (RM77.19)** — proof that **high CTR ≠ cheap leads**. Blended account benchmark:
+**~RM61 / lead** (454 leads / MYR27.8k across the lead-objective winners).
 
 ---
 
@@ -49,6 +57,58 @@ relaunched in a fresh campaign. Combined they are the **#2 winner at MYR6,879**.
 "top 3 by spend" therefore collapses to **two creatives**; for analytical value the
 deep-dive below uses Queens Woodz video (#1), Treewoodz sign-up (#2 combined), and
 the highest-CTR Golf View VR video (#3).
+
+---
+
+## B2. Second-Pass Ranking — Cost-Per-Lead (Efficiency)
+
+> Pass 1 ranked by **spend + longevity** (which ads you *scaled* hardest). This pass
+> re-ranks the **same lead-objective winners** by **cost per lead (CPL)** — which ad
+> bought leads *cheapest*. Only ads optimised for the **lead form** (`leadgen.other`)
+> are comparable, so awareness / traffic / WhatsApp-message ads are excluded (they
+> optimise for reach, landing-page views or conversations, not leads). Live Meta data,
+> 1 Mar – 30 Nov 2025.
+
+| Rank (CPL) | Ad (project) | Leads | Spend MYR | **CPL MYR** | Spend-rank | Format / CTA |
+|---|---|---:|---:|---:|---|---|
+| 🥇 1 | **Treewoodz 2_Lead** (Treewoodz) | 68 | 3,453 | **50.78** | #2 | Image / Sign Up |
+| 🥈 2 | **Open_New Vela_Pic** (Vela) | 32 | 1,757 | **54.90** | #6 | Image / Lead |
+| 🥉 3 | **QW Video 1** (Queens Woodz) | 56 | 3,360 | **60.00** | #5 | Video / Sign Up |
+| 4 | TW_1 (Treewoodz) | 57 | 3,427 | 60.11 | #3 | Image / Sign Up |
+| 5 | **QW_Vid 1_Site** (Queens Woodz) | 175 | 10,982 | 62.76 | **#1** | Video / Sign Up |
+| 6 | Photo_Vela (Vela) | 22 | 1,461 | 66.41 | #7 | Image / Lead |
+| 7 | QW_Vid 3_VR (Golf View) | 44 | 3,396 | **77.19** | #4 *(CTR pick)* | Video / Learn More |
+
+**Blended:** 454 leads · MYR27,836 spend · **~RM61 / lead** account benchmark.
+
+**What changes when you rank by efficiency, not scale:**
+- 🔑 **Cheapest leads = short image "info-gate" ads, not the hero video.** `Treewoodz
+  2_Lead` (RM50.78) and the `Vela` image ad (RM54.90) beat *every* video on cost-per-lead.
+  The minimalist *"register to unlock price/floorplans"* formula is your most cost-efficient
+  lead engine — and it's cheap to produce.
+- ⚠️ **Your #1 spend ad is only mid-pack on CPL.** `QW_Vid 1_Site` bought 175 leads (3× any
+  other) but at **RM62.76 — ~24% dearer per lead than Treewoodz.** It earns its budget on
+  **volume + 8-month stability**, not efficiency. Keep scaling it, but treat it as the
+  *volume engine*, not the *cheapest source*.
+- 🚩 **The highest-CTR ad is the WORST on cost-per-lead.** `QW_Vid 3_VR` (Golf View VR) had
+  the best CTR (5.08%) in Pass 1 — yet at **RM77.19/lead it's the most expensive** of all
+  winners. Its premium/narrow audience drives CPM to RM195, which eats the click advantage.
+  **Lesson: high CTR ≠ cheap leads.** Use the VR video for **quality / retargeting**, not
+  cheap top-funnel volume.
+
+**Early-signal ads to scale-test** *(cheap CPL but <RM200 spend — promising, not yet proven):*
+
+| Ad | Spend MYR | CPL MYR | Note |
+|---|---:|---:|---|
+| QW Video 3_VR General | 165 | **27.54** | broad-audience cut of the VR video — half the proven CPL |
+| QW Video 2_Ai | 140 | **27.96** | AI-generated QW video, very cheap early leads |
+| TW_1 (fresh ad set) | 159 | 31.78 | Treewoodz creative relaunched, cheap |
+| 2_Edu_LRT_Jam | 38 | 38.07 | educational LRT/traffic-jam angle, tiny test |
+
+These delivered leads at **RM28–38 — roughly half** the proven-winner CPL — but on tiny
+budgets, so they're hypotheses, not validated winners. **Action: graduate the two cheapest
+(`QW Video 3_VR General`, `QW Video 2_Ai`) into a RM50–80/day ad set for 30 days and check
+whether the efficiency holds at scale before committing big budget.**
 
 ---
 
@@ -194,6 +254,9 @@ above ~MYR120 is acceptable only when CTR/intent is high (Golf View VR).
 > 现在点击 Learn More，我优先帮你选最好的单位 👇
 
 **Hook:** warning/interrupt + "real BJ not BK5/Kinrara" · **Angle:** last-chance + premium view + space · **CTA:** Learn More
+> ⚠️ **CPL caveat (from §B2):** the VR-video angle wins on CTR but was the *most expensive
+> per lead* (RM77). Run this for **quality / retargeting warm viewers**, and cap its budget —
+> do NOT make it your cold-volume workhorse. Pair it with the cheaper image info-gate (Ad 4).
 
 ---
 
@@ -242,6 +305,12 @@ above ~MYR120 is acceptable only when CTR/intent is high (Golf View VR).
 3. When CTR drops ~30% from peak, **relaunch the same creative in a fresh ad set** (the Treewoodz move).
 4. Keep **RM/month + "real Bukit Jalil" + walk-to-Pavilion/LRT + quota bonus** in every cold ad.
 5. Reserve **WhatsApp CTA for retargeting** warm viewers, not cold traffic.
+6. **Judge cold ads on cost-per-lead (~RM61 benchmark), not CTR.** A high-CTR ad can still
+   be your most expensive lead source (Golf View VR = RM77). Scale on CPL; use CTR only to
+   read hook strength.
+7. **Lean image "info-gate" ads for cheap volume** (your CPL champions: Treewoodz RM50,
+   Vela RM55), and **graduate the RM28–38 early-signal cuts** (`QW Video 3_VR General`,
+   `QW Video 2_Ai`) into a RM50–80/day test before trusting them.
 
 *All figures pulled live from Meta Ads account 509853868515596 for 1 Mar–30 Nov 2025.
 Quoted hooks/CTAs are verbatim from the ad creatives.*
