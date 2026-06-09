@@ -58,10 +58,10 @@ const GRAPH = `https://graph.facebook.com/${cfg.apiVersion}`;
 // ---------------------------------------------------------------------------
 // Graph helpers (with paging + readable errors)
 // ---------------------------------------------------------------------------
-async function graphGet(node, params = {}) {
+async function graphGet(node, params = {}, token = cfg.token) {
   const url = new URL(`${GRAPH}/${node}`);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-  url.searchParams.set('access_token', cfg.token);
+  url.searchParams.set('access_token', token);
   const res = await fetch(url);
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -75,9 +75,9 @@ async function graphGet(node, params = {}) {
   return json;
 }
 
-async function graphGetAll(node, params = {}) {
+async function graphGetAll(node, params = {}, token = cfg.token) {
   let out = [];
-  let json = await graphGet(node, { ...params, limit: '100' });
+  let json = await graphGet(node, { ...params, limit: '100' }, token);
   out = out.concat(json.data || []);
   while (json.paging?.next) {
     const res = await fetch(json.paging.next);
@@ -159,12 +159,21 @@ function leadToRow(lead, formName) {
   );
   console.log(`Sheet has ${have.size} existing lead(s).`);
 
-  // 2. The Page's lead forms (gives us each form's name too).
-  const forms = await graphGetAll(`${cfg.pageId}/leadgen_forms`, { fields: 'id,name' });
+  // 2. Exchange the system-user token for a Page access token — the
+  // leadgen_forms / leads endpoints must be called with a Page token, not a
+  // user token (Graph error #190 otherwise).
+  const pageToken = (await graphGet(cfg.pageId, { fields: 'access_token' })).access_token;
+  if (!pageToken) {
+    die('Could not obtain a Page access token — confirm the system user has the ' +
+      'Page assigned with full control and the token includes pages_show_list / pages_read_engagement.');
+  }
+
+  // 3. The Page's lead forms (gives us each form's name too).
+  const forms = await graphGetAll(`${cfg.pageId}/leadgen_forms`, { fields: 'id,name' }, pageToken);
   console.log(`Page ${cfg.pageId}: ${forms.length} lead form(s).`);
   if (!forms.length) die('No lead forms found on this Page (check META_PAGE_ID and token access).');
 
-  // 3. Pull recent leads per form, keep only new ones inside the lookback window.
+  // 4. Pull recent leads per form, keep only new ones inside the lookback window.
   const cutoff = Math.floor(Date.now() / 1000) - cfg.lookbackDays * 86400;
   const leadFields =
     'id,created_time,ad_id,ad_name,adset_id,adset_name,campaign_id,campaign_name,' +
@@ -173,7 +182,7 @@ function leadToRow(lead, formName) {
   const newRows = [];
   let scanned = 0;
   for (const form of forms) {
-    const leads = await graphGetAll(`${form.id}/leads`, { fields: leadFields });
+    const leads = await graphGetAll(`${form.id}/leads`, { fields: leadFields }, pageToken);
     for (const lead of leads) {
       scanned++;
       const created = Math.floor(Date.parse(lead.created_time) / 1000);
