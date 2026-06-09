@@ -1,0 +1,47 @@
+name: TEST — pull leads from Meta (dry run)
+
+# Manual, read-only test of the Meta -> Sheet importer. Fetches your recent
+# leads and prints the rows it *would* append, but writes nothing. Use this to
+# confirm the token has leads access and the column mapping is correct before
+# letting the daily job write to the live sheet.
+
+on:
+  workflow_dispatch:
+    inputs:
+      lookback_days:
+        description: 'How many days back to scan for leads'
+        type: string
+        default: '30'
+
+jobs:
+  pull-dry-run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Write service-account key
+        working-directory: capi
+        run: printf '%s' "$GOOGLE_SERVICE_ACCOUNT_JSON" > service-account.json
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+
+      - name: Pull leads (dry run — writes nothing)
+        working-directory: capi
+        run: node pull-leads.mjs --dry-run
+        env:
+          META_CAPI_TOKEN: ${{ secrets.META_CAPI_TOKEN }}
+          META_API_VERSION: v23.0
+          META_PAGE_ID: ${{ vars.META_PAGE_ID || '100861858282739' }}
+          LEAD_LOOKBACK_DAYS: ${{ inputs.lookback_days }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: service-account.json
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+          SHEET_RANGE: ${{ vars.SHEET_RANGE || 'A:R' }}
+
+      - name: Clean up key
+        if: always()
+        working-directory: capi
+        run: rm -f service-account.json
